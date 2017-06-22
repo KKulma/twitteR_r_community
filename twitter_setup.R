@@ -102,7 +102,7 @@ str(r_users_info)
 
 r_users_info %>% select(contains("count")) %>% names()
 
-
+## you can look up definitions on https://dev.twitter.com/overview/api/users
 
 r_users_score <- r_users_info %>%
   select(screen_name, followers_count, friends_count, statuses_count, listed_count, favourites_count) %>% 
@@ -142,7 +142,40 @@ top10_ids <- r_users_info %>%
 id <- top10_ids$user_id
 
 
+
+
+
 #### twitteR hack to get followers of multiple users #####
+
+### single example ###
+
+# friends object
+start <- getUser("@camharvey")
+friends_object <- lookupUsers(start$getFriendIDs())
+friendsCount(start)
+
+# followers object 
+followers_object <- lookupUsers(start$getFollowerIDs())
+followers_object
+followersCount(start)
+
+
+friends <- sapply(friends_object[1:117],name)
+followers <- sapply(followers_object[1:1033],name)
+
+# Merge both lists into a data frame to create an edge file from followers and friends
+
+relations <- merge(data.frame(User='@camharvey',followers=friends), data.frame(User=followers, followers='@camharvey'), all=TRUE)
+a <- data.frame(User='@camharvey',followers=friends)
+str(a)
+head(a)
+
+b <- data.frame(User=followers, followers='@camharvey')
+str(b)
+head(b)
+
+
+
 
 library(twitteR)
 
@@ -167,8 +200,21 @@ for (i in 1:length(users)){
 
 
 user_el <- do.call("rbind",userrelations)
+str(user_el)
+head(user_el)
+tail(user_el)
 
-save("twitter_rstats.RData")
+save.image(file="twitter_rstats.RData")
+
+
+summary(user_el)
+
+table(user_el$User)
+table(user_el$followers)
+
+user_el %>% n_distinct(users)
+user_el %>% n_distinct(followers)
+
 
 
 r_users_score %>% 
