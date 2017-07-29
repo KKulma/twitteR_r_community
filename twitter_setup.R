@@ -2,7 +2,7 @@
 #install.packages(c("devtools", "rjson", "bit64", "httr"))
 #install.packages("httpuv")
 #RESTART R session!
-
+#install.packages("dplyr")
 
 rm(list = ls())
 
@@ -10,9 +10,16 @@ library(devtools)
 #install_github("twitteR", username="geoffjentry")
 library(twitteR)
 library(httpuv)
+library(rtweet)
+library(stringr)
+library(dplyr)
+
 
 update_packages("httr")
 library(httr)
+library(ggraph)
+library(igraph)
+library(purrr)
 
 #### twitter issues - demo ####
 
@@ -54,7 +61,7 @@ searchTwitter("#rstats")
 #### rtweet ####
 
 #install.packages("rtweet")
-library(rtweet)
+
 
 ### log in ####
 
@@ -72,13 +79,10 @@ r_users <- search_users("#rstats", n = 1000)
 #r_users_ii <- search_users("#rstats", n = 1000, page = page)
 #r_users <- c(unlist(r_users), unlist(r_users_ii))
 
-?str
+
 str(r_users, max.level = 1)
 head(r_users)
 
-
-library(stringr)
-library(dplyr)
 
 
 ### only 553 users
@@ -98,7 +102,7 @@ str(r_users)
 ##### r_users' frequency of #rstats ####
 
 
-r_users_tweets<-map(r_users$screen_name, userTimeline,100)
+#r_users_tweets<-map(r_users$screen_name, userTimeline,100)
 
 
 
@@ -124,6 +128,35 @@ head(r_users_score)
 tail(r_users_score)
 str(r_users_score)
 
+##### ranking vis #####
+
+r_users_score %>% 
+  ggplot(aes(followers_count)) +
+  geom_histogram() +
+  stat_bin(bins = 1000)
+
+r_users_score %>% 
+  ggplot(aes(friends_count)) +
+  geom_histogram() +
+  stat_bin(bins = 1000)
+
+r_users_score %>% 
+  ggplot(aes(listed_count)) +
+  geom_histogram() +
+  stat_bin(bins = 1000)
+
+r_users_score %>% 
+  ggplot(aes(favourites_count)) +
+  geom_histogram() +
+  stat_bin(bins = 1000)
+
+
+r_users_score %>% 
+  ggplot(aes(statuses_count)) +
+  geom_histogram() +
+  stat_bin(bins = 1000)
+
+
 ### it does not say how many of those tweets were actual #rstats tweets!
 
 r_users_ranking = r_users_score %>% 
@@ -136,16 +169,100 @@ bottom_10 <- r_users_ranking %>% arrange(desc(top_score)) %>% tail(10)
 
 top_100 %>% as.data.frame()
 
+final_summary <- r_users_score %>%
+  inner_join(r_users_ranking) %>% 
+  mutate(ranking = rank(-top_score))
 
-r_users_score %>% 
-  filter(screen_name %in% top_10$screen_name)
+#?rank
+
+final_summary %>% 
+  filter(screen_name %in% top_10$screen_name) %>%
+  arrange(desc(friends_count))
 
 
-top10_ids <- r_users_info %>%
+top10_lookup <- r_users_info %>%
   filter(screen_name %in% top_10$screen_name) %>% 
   select(screen_name, user_id)
 
-id <- top10_ids$user_id
+#### get friends ####
+
+?get_friends
+top_10_userids <- top10_lookup$user_id
+top_10_usernames <- as_vector(top10_lookup$screen_name)
+
+str(top_10_userids)
+str(top_10_usernames)
+
+library(purrr)
+friends_test <- map(top_10_usernames, get_friends)
+SJ_friends <- get_followers("TheSmartJokes")
+
+str(friends_test)
+str(SJ_friends)
+head(SJ_friends)
+
+SJ_friends <-SJ_friends %>% 
+  rename(follower_id = user_id) %>% 
+  mutate(twitter_top_user = "TheSmartJokes") %>% 
+  select(twitter_top_user, follower_id)
+
+
+friends_test2 = friends_test
+names(friends_test2) <- top_10_usernames
+names(friends_test2[1])
+
+friends_test3 <- map2_df(friends_test2, names(friends_test2), ~ mutate(.x, twitter_top_user = .y)) %>% 
+  rename(follower_id = user_id) %>% select(twitter_top_user, follower_id)
+
+str(friends_test3)
+head(friends_test3)
+tail(friends_test3)
+
+
+friends_test4 <- friends_test3 %>% 
+  filter(twitter_top_user != "TheSmartJokes") %>% 
+  rbind(SJ_friends) 
+
+
+friends_test5 <- friends_test4 %>% 
+  filter(follower_id %in% top10_lookup$user_id)
+
+?match
+
+friends_test5$friend_name <- top10_lookup$screen_name[match(friends_test5$follower_id, top10_lookup$user_id)]
+  
+str(friends_test5)
+
+final_test <- friends_test5 %>% select(-follower_id)
+str(final_test)
+
+
+
+#### plot friendships ####
+
+final_test
+f1 <- graph_from_data_frame(final_test, directed = TRUE, vertices = NULL)
+V(f1)$degree<-degree(f1)
+f1
+V(f1)$name
+
+#pdf("SampleGraph.pdf",width=7,height=5)
+ggraph(f1, layout='fr') + 
+  #geom_edge_link(aes(colour = factor(season)))+
+  geom_edge_link() + 
+  geom_node_point() +
+  geom_node_text(aes(label = name, fontface='bold'), color = 'white', size = 5) +
+  theme_graph(background = 'grey30', text_colour = 'white',title_size = 30) +
+  labs(title='Batman Villains',subtitle='Plotting 37 Batman villains across 3 seasons with\nnode ends representing season & episode number',
+       caption='ggraph walkthroughs available at: http://www.data-imaginist.com/\n Data from: http://mentalfloss.com/article/60213/visual-guide-all-37-villains-batman-tv-series')
+#dev.off() 
+
+
+
+
+
+
+
 
 
 #### get followers 
@@ -193,19 +310,29 @@ head(final_followers)
 tail(final_followers)
 
 d1 <- graph_from_data_frame(final_followers, directed = TRUE, vertices = NULL)
+d0 <- graph_from_data_frame(final_followers[1:1000], directed = TRUE, vertices = NULL)
 
+getwd()
 
-g1 <- create.igraph(data)
-mdslayout <- layout.mds(g1, dist = distance_of_your_nodes)
-plot.igraph(g1, layout = mdslayout)
+pdf("SampleGraph.pdf",width=7,height=5)
+ggraph(d0,layout='fr') + 
+  #geom_edge_link(aes(colour = factor(season)))+
+   geom_edge_link() + 
+  geom_node_point()
+dev.off() 
 
+library(igraph)
+??create.igraph
+
+pdf("SampleGraph_vick.pdf",width=7,height=5)
+mdslayout <- layout.mds(d0)
+plot.igraph(d0, layout = mdslayout)
+dev.off() 
 
 graph<-graph_from_data_frame(dummy_data2[1:100, ])
 
 
-ggraph(d1) + 
-  geom_edge_link() + 
-  geom_node_point()
+
 
 
 geom_edge_link(aes(colour = factor(season)))+
@@ -390,6 +517,8 @@ tail(user_el)
 save.image(file="twitter_rstats.RData")
 
 
+load("/Users/katarzynakulma/twitter_rstats.RData")
+getwd()
 summary(user_el)
 
 table(user_el$User)
