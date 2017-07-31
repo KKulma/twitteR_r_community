@@ -164,6 +164,8 @@ r_users_ranking = r_users_score %>%
   summarise(top_score = followers_percentile + friends_percentile + listed_percentile + favourites_percentile + statuses_percentile)
 
 top_10 <- r_users_ranking %>% arrange(desc(top_score)) %>% head(10)
+top_20 <- r_users_ranking %>% arrange(desc(top_score)) %>% head(20)
+top_30 <- r_users_ranking %>% arrange(desc(top_score)) %>% head(30)
 top_100 <- r_users_ranking %>% arrange(desc(top_score)) %>% head(100)
 bottom_10 <- r_users_ranking %>% arrange(desc(top_score)) %>% tail(10)
 
@@ -184,20 +186,42 @@ top10_lookup <- r_users_info %>%
   filter(screen_name %in% top_10$screen_name) %>% 
   select(screen_name, user_id)
 
+top20_lookup <- r_users_info %>%
+  filter(screen_name %in% top_20$screen_name) %>% 
+  select(screen_name, user_id)
+
+top30_lookup <- r_users_info %>%
+  filter(screen_name %in% top_30$screen_name) %>% 
+  select(screen_name, user_id)
+
 #### get friends ####
 
 ?get_friends
 top_10_userids <- top10_lookup$user_id
 top_10_usernames <- as_vector(top10_lookup$screen_name)
 
+top_20_userids <- top20_lookup$user_id
+top_20_usernames <- as_vector(top20_lookup$screen_name)
+
+top_30_userids <- top30_lookup$user_id
+top_30_usernames <- as_vector(top30_lookup$screen_name)
+
 str(top_10_userids)
 str(top_10_usernames)
+
+str(top_20_userids)
+str(top_20_usernames)
 
 library(purrr)
 friends_test <- map(top_10_usernames, get_friends)
 SJ_friends <- get_followers("TheSmartJokes")
 
-str(friends_test)
+friends_test20 <- map(top_20_usernames, get_friends)
+SJ_friends <- get_followers("TheSmartJokes")
+
+friends_test30 <- map(top_30_usernames, get_friends)
+
+str(friends_test20)
 str(SJ_friends)
 head(SJ_friends)
 
@@ -211,48 +235,102 @@ friends_test2 = friends_test
 names(friends_test2) <- top_10_usernames
 names(friends_test2[1])
 
+friends_test22 = friends_test20
+names(friends_test22) <- top_20_usernames
+names(friends_test2[1])
+str(friends_test22)
+
+friends_test32 = friends_test30
+names(friends_test32) <- top_30_usernames
+names(friends_test32[1])
+str(friends_test32)
+
+
+
+
 friends_test3 <- map2_df(friends_test2, names(friends_test2), ~ mutate(.x, twitter_top_user = .y)) %>% 
   rename(follower_id = user_id) %>% select(twitter_top_user, follower_id)
+
+friends_test23 <- map2_df(friends_test22, names(friends_test22), ~ mutate(.x, twitter_top_user = .y)) %>% 
+  rename(follower_id = user_id) %>% select(twitter_top_user, follower_id)
+
+friends_test33 <- map2_df(friends_test32, names(friends_test32), ~ mutate(.x, twitter_top_user = .y)) %>% 
+  rename(follower_id = user_id) %>% select(twitter_top_user, follower_id)
+
 
 str(friends_test3)
 head(friends_test3)
 tail(friends_test3)
 
+str(friends_test23)
+head(friends_test23)
+tail(friends_test23)
 
-friends_test4 <- friends_test3 %>% 
+str(friends_test33)
+head(friends_test33)
+tail(friends_test33)
+
+friends_test23 %>% summarize(dist = n_distinct(twitter_top_user))
+friends_test33 %>% summarize(dist = n_distinct(twitter_top_user))
+
+
+friends_test24 <- friends_test23 %>% 
+  filter(twitter_top_user != "TheSmartJokes") %>% 
+  rbind(SJ_friends) 
+
+friends_test34 <- friends_test33 %>% 
   filter(twitter_top_user != "TheSmartJokes") %>% 
   rbind(SJ_friends) 
 
 
-friends_test5 <- friends_test4 %>% 
-  filter(follower_id %in% top10_lookup$user_id)
+friends_test25 <- friends_test24 %>% 
+  filter(follower_id %in% top20_lookup$user_id)
+
+friends_test35 <- friends_test34 %>% 
+  filter(follower_id %in% top20_lookup$user_id)
 
 ?match
 
-friends_test5$friend_name <- top10_lookup$screen_name[match(friends_test5$follower_id, top10_lookup$user_id)]
+friends_test25$friend_name <- top20_lookup$screen_name[match(friends_test25$follower_id, top20_lookup$user_id)]
+friends_test35$friend_name <- top30_lookup$screen_name[match(friends_test35$follower_id, top30_lookup$user_id)]
   
-str(friends_test5)
+str(friends_test25)
 
-final_test <- friends_test5 %>% select(-follower_id)
+final_test2 <- friends_test25 %>% select(-follower_id)
+final_test3 <- friends_test35 %>% select(-follower_id)
 str(final_test)
+str(final_summary)
 
+final_test$from_ranking = final_summary$ranking[match(final_test$twitter_top_user, final_summary$screen_name)]
+final_test$from_top_score = final_summary$top_score[match(final_test$twitter_top_user, final_summary$screen_name)]
+
+final_test$to_ranking = final_summary$ranking[match(final_test$follower_name, final_summary$screen_name)]
+final_test$to_top_score = final_summary$top_score[match(final_test$follower_name, final_summary$screen_name)]
+
+final_test$ranking <- NULL
+final_test$top_score <- NULL
 
 
 #### plot friendships ####
 
 final_test
-f1 <- graph_from_data_frame(final_test, directed = TRUE, vertices = NULL)
-V(f1)$degree<-degree(f1)
+f1 <- graph_from_data_frame(final_test2, directed = TRUE, vertices = NULL)
+#V(f1)$degree<-degree(f1)
+V(f1)$Popularity <- degree(f1, mode = 'in')
 f1
 V(f1)$name
 
 #pdf("SampleGraph.pdf",width=7,height=5)
 ggraph(f1, layout='fr') + 
   #geom_edge_link(aes(colour = factor(season)))+
-  geom_edge_link() + 
-  geom_node_point() +
-  geom_node_text(aes(label = name, fontface='bold'), color = 'white', size = 5) +
-  theme_graph(background = 'grey30', text_colour = 'white',title_size = 30) +
+  #geom_edge_link() + 
+  geom_edge_fan(aes(alpha = ..index..), show.legend = FALSE) +
+  geom_node_point(aes(size = Popularity)) +
+#  geom_node_point() +
+  geom_node_text(aes(label = name, fontface='bold'), color = 'steelblue', size = 4) +
+#  theme_graph(background = 'grey30', text_colour = 'white',title_size = 30) +
+  theme_graph(foreground = 'steelblue', fg_text_colour = 'white')
+
   labs(title='Batman Villains',subtitle='Plotting 37 Batman villains across 3 seasons with\nnode ends representing season & episode number',
        caption='ggraph walkthroughs available at: http://www.data-imaginist.com/\n Data from: http://mentalfloss.com/article/60213/visual-guide-all-37-villains-batman-tv-series')
 #dev.off() 
