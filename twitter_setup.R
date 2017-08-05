@@ -3,6 +3,7 @@
 #install.packages("httpuv")
 #RESTART R session!
 #install.packages("dplyr")
+install.packages("DT")
 
 rm(list = ls())
 
@@ -52,6 +53,7 @@ api_secret <- "IED6n8nnBnxfa5rZoKn6ZCXdy2w2ARNDfY8a3Ry0GXhAwOJByd"
 access_token <- "567537377-hMRh7424BRezcuu03bgsVAqYlqsHbsI8QtRVkGQF"
 access_token_secret <- "na3LB2iWhZuxPGDtaukkRFoatYiJPJIk0PRTdgaxiBBAB"
 
+?setup_twitter_oauth
 setup_twitter_oauth(api_key,api_secret)
 
 
@@ -194,6 +196,19 @@ top30_lookup <- r_users_info %>%
   filter(screen_name %in% top_30$screen_name) %>% 
   select(screen_name, user_id)
 
+top30_lookup$gender <- c("M", "F", "F", "F", "F",
+                         "M", "M", "M", "F", "F", 
+                         "F", "M", "M", "M", "F", 
+                         "F", "M", "M", "M", "M", 
+                         "M", "M", "M", "U", "M",
+                         "M", "M", "M", "M", "M")
+
+table(top30_lookup$gender)
+
+top100_lookup <- r_users_info %>%
+  filter(screen_name %in% top_100$screen_name) %>% 
+  select(screen_name, user_id)
+
 #### get friends ####
 
 ?get_friends
@@ -206,6 +221,9 @@ top_20_usernames <- as_vector(top20_lookup$screen_name)
 top_30_userids <- top30_lookup$user_id
 top_30_usernames <- as_vector(top30_lookup$screen_name)
 
+top_100_userids <- top100_lookup$user_id
+top_100_usernames <- as_vector(top100_lookup$screen_name)
+
 str(top_10_userids)
 str(top_10_usernames)
 
@@ -217,18 +235,28 @@ friends_test <- map(top_10_usernames, get_friends)
 SJ_friends <- get_followers("TheSmartJokes")
 
 friends_test20 <- map(top_20_usernames, get_friends)
+str(friends_test20)
+
+
 SJ_friends <- get_followers("TheSmartJokes")
 
-friends_test30 <- map(top_30_usernames, get_friends)
+
+friends_test30a <- map(top_30_usernames[1:15 ], get_friends)
+friends_test30b <- map(top_30_usernames[16:30], get_friends)
+
+str(friends_test30a)
+str(friends_test30b)
+
+#friends_test100 <- map(top_100_usernames, get_friends)
 
 str(friends_test20)
 str(SJ_friends)
 head(SJ_friends)
 
 SJ_friends <-SJ_friends %>% 
-  rename(follower_id = user_id) %>% 
+  rename(friend_id = user_id) %>% 
   mutate(twitter_top_user = "TheSmartJokes") %>% 
-  select(twitter_top_user, follower_id)
+  select(twitter_top_user, friend_id)
 
 
 friends_test2 = friends_test
@@ -240,27 +268,66 @@ names(friends_test22) <- top_20_usernames
 names(friends_test2[1])
 str(friends_test22)
 
-friends_test32 = friends_test30
-names(friends_test32) <- top_30_usernames
-names(friends_test32[1])
+friends_test32a = friends_test30a
+friends_test32b = friends_test30b
+
+names(friends_test32a) <- top_30_usernames[1:15]
+names(friends_test32b) <- top_30_usernames[16:30]
+
+str(friends_test32a)
+str(friends_test32b)
+
+
+friends_test32 <- append(friends_test32a, friends_test32b)
 str(friends_test32)
+names(friends_test32) <- top_30_usernames
+
+friends_test3333 <- map2_df(friends_test32, names(friends_test32), ~ mutate(.x, twitter_top_user = .y)) %>% 
+  rename(friend_id = user_id) %>% select(twitter_top_user, friend_id)
+
+str(friends_test3333)
+str(friends_test33)
+
+identical(friends_test33, friends_test3333)
+
+head(friends_test3333)
+head(friends_test33)
+
+tail(friends_test3333)
+tail(friends_test33)
+
+#friends_test32 <-rbind(friends_test32a, friends_test32b)
+#str(friends_test32)
+
+
+
+friends_test102 = friends_test100
+names(friends_test102) <- top_100_usernames
+names(friends_test102[1])
+str(friends_test102)
 
 
 
 
 friends_test3 <- map2_df(friends_test2, names(friends_test2), ~ mutate(.x, twitter_top_user = .y)) %>% 
-  rename(follower_id = user_id) %>% select(twitter_top_user, follower_id)
+  rename(friend_id = user_id) %>% select(twitter_top_user, friend_id)
 
 friends_test23 <- map2_df(friends_test22, names(friends_test22), ~ mutate(.x, twitter_top_user = .y)) %>% 
-  rename(follower_id = user_id) %>% select(twitter_top_user, follower_id)
+  rename(friend_id = user_id) %>% select(twitter_top_user, friend_id)
 
-friends_test33 <- map2_df(friends_test32, names(friends_test32), ~ mutate(.x, twitter_top_user = .y)) %>% 
-  rename(follower_id = user_id) %>% select(twitter_top_user, follower_id)
+friends_test33a <- map2_df(friends_test32a, names(friends_test32a), ~ mutate(.x, twitter_top_user = .y)) %>% 
+  rename(friend_id = user_id) %>% select(twitter_top_user, friend_id)
+
+friends_test33b <- map2_df(friends_test32b, names(friends_test32b), ~ mutate(.x, twitter_top_user = .y)) %>% 
+  rename(friend_id = user_id) %>% select(twitter_top_user, friend_id)
+
+str(friends_test33a)
+str(friends_test33b)
+
+friends_test33 <- rbind(friends_test33a, friends_test33b)
+str(friends_test33)
 
 
-str(friends_test3)
-head(friends_test3)
-tail(friends_test3)
 
 str(friends_test23)
 head(friends_test23)
@@ -284,21 +351,24 @@ friends_test34 <- friends_test33 %>%
 
 
 friends_test25 <- friends_test24 %>% 
-  filter(follower_id %in% top20_lookup$user_id)
+  filter(friend_id %in% top20_lookup$user_id)
 
 friends_test35 <- friends_test34 %>% 
-  filter(follower_id %in% top20_lookup$user_id)
+  filter(friend_id %in% top30_lookup$user_id)
 
-?match
 
-friends_test25$friend_name <- top20_lookup$screen_name[match(friends_test25$follower_id, top20_lookup$user_id)]
-friends_test35$friend_name <- top30_lookup$screen_name[match(friends_test35$follower_id, top30_lookup$user_id)]
-  
+friends_test25$friend_name <- top20_lookup$screen_name[match(friends_test25$friend_id, top20_lookup$user_id)]
+friends_test35$friend_name <- top30_lookup$screen_name[match(friends_test35$friend_id, top30_lookup$user_id)]
+
+
+friends_test35$user_gender <- top30_lookup$gender[match(friends_test35$twitter_top_user, top30_lookup$screen_name)]
+friends_test35$friend_gender <- top30_lookup$gender[match(friends_test35$friend_name, top30_lookup$screen_name)]
+
 str(friends_test25)
 
-final_test2 <- friends_test25 %>% select(-follower_id)
-final_test3 <- friends_test35 %>% select(-follower_id)
-str(final_test)
+final_test2 <- friends_test25 %>% select(-friend_id)
+final_test3 <- friends_test35 %>% select(-friend_id)
+str(final_test3)
 str(final_summary)
 
 final_test$from_ranking = final_summary$ranking[match(final_test$twitter_top_user, final_summary$screen_name)]
@@ -310,30 +380,92 @@ final_test$to_top_score = final_summary$top_score[match(final_test$follower_name
 final_test$ranking <- NULL
 final_test$top_score <- NULL
 
+getwd()
+setwd("/Users/katarzynakulma/projects/kkulma.github.io/blog_prep")
+save.image(file = "twitter_image.RData")
 
 #### plot friendships ####
 
 final_test
-f1 <- graph_from_data_frame(final_test2, directed = TRUE, vertices = NULL)
+f1 <- graph_from_data_frame(final_test3, directed = TRUE, vertices = NULL)
 #V(f1)$degree<-degree(f1)
 V(f1)$Popularity <- degree(f1, mode = 'in')
-f1
 V(f1)$name
 
-#pdf("SampleGraph.pdf",width=7,height=5)
-ggraph(f1, layout='fr') + 
+### good background colours
+# dodgerblue4
+# darkslateblue
+# darkslategray
+# dimgrey
+
+ggraph(f1, layout='kk') + 
   #geom_edge_link(aes(colour = factor(season)))+
   #geom_edge_link() + 
   geom_edge_fan(aes(alpha = ..index..), show.legend = FALSE) +
   geom_node_point(aes(size = Popularity)) +
 #  geom_node_point() +
-  geom_node_text(aes(label = name, fontface='bold'), color = 'steelblue', size = 4) +
-#  theme_graph(background = 'grey30', text_colour = 'white',title_size = 30) +
-  theme_graph(foreground = 'steelblue', fg_text_colour = 'white')
+  geom_node_text(aes(label = name, fontface='bold'), 
+                 color = 'white', size = 4) +
+  theme_graph(background = 'dimgray', text_colour = 'white',title_size = 30) 
+#  theme_graph(foreground = 'steelblue', fg_text_colour = 'white')
+
+### user gender 
+ggraph(f1, layout='kk') + 
+  #geom_edge_link(aes(colour = factor(season)))+
+  #geom_edge_link() + 
+  geom_edge_fan(aes(alpha = ..index..), show.legend = FALSE) +
+  geom_node_point(aes(size = Popularity)) +
+  #  geom_node_point() +
+  #geom_node_text(aes(label = name, fontface='bold'), 
+  #               color = 'white', size = 4) +
+  #theme_graph(background = 'gray', text_colour = 'white',title_size = 30) 
+  theme_graph( fg_text_colour = 'black') +
+  facet_edges(~user_gender)
+
+
+### friend gender
+ggraph(f1, layout='kk') + 
+  #geom_edge_link(aes(colour = factor(season)))+
+  #geom_edge_link() + 
+  geom_edge_fan(aes(alpha = ..index..), show.legend = FALSE) +
+  geom_node_point(aes(size = Popularity)) +
+  #  geom_node_point() +
+  #geom_node_text(aes(label = name, fontface='bold'), 
+  #               color = 'white', size = 4) +
+  #theme_graph(background = 'gray', text_colour = 'white',title_size = 30) 
+  theme_graph( fg_text_colour = 'black') +
+  facet_edges(~friend_gender)
+
+
+
+#### pure graph
+### friend gender
+ggraph(f1, layout='kk') + 
+  #geom_edge_link(aes(colour = factor(season)))+
+  #geom_edge_link() + 
+  geom_edge_fan(aes(alpha = ..index..), show.legend = FALSE) +
+  geom_node_point(aes(size = Popularity)) +
+  #  geom_node_point() +
+  #geom_node_text(aes(label = name, fontface='bold'), 
+  #               color = 'white', size = 4) +
+  #theme_graph(background = 'gray', text_colour = 'white',title_size = 30) 
+  theme_graph( fg_text_colour = 'black') 
+
+
+
 
   labs(title='Batman Villains',subtitle='Plotting 37 Batman villains across 3 seasons with\nnode ends representing season & episode number',
        caption='ggraph walkthroughs available at: http://www.data-imaginist.com/\n Data from: http://mentalfloss.com/article/60213/visual-guide-all-37-villains-batman-tv-series')
 #dev.off() 
+  
+  
+  ggraph(f1, layout = 'kk') + 
+    geom_edge_fan(aes(alpha = ..index..), show.legend = FALSE) + 
+    geom_node_point(aes(size = Popularity)) + 
+    theme_graph(foreground = 'steelblue', fg_text_colour = 'white') +
+    geom_node_text(aes(label = name, fontface='bold'), color = 'dodgerblue4', size = 4)
+  
+  
 
 
 
@@ -363,16 +495,16 @@ followers_test9 <- get_followers(top_10$screen_name[9])
 followers_test10 <- get_followers(top_10$screen_name[10]) 
 
 
-followers_test1B <- data.frame(r_user = rep(top_10$screen_name[1], length(followers_test1)), follower_id = followers_test1)
-followers_test2B <- data.frame(r_user = rep(top_10$screen_name[2], length(followers_test2)), follower_id = followers_test2)
-followers_test3B <- data.frame(r_user = rep(top_10$screen_name[3], length(followers_test3)), follower_id = followers_test3)
-followers_test4B <- data.frame(r_user = rep(top_10$screen_name[4], length(followers_test4)), follower_id = followers_test4)
-followers_test5B <- data.frame(r_user = rep(top_10$screen_name[5], length(followers_test5)), follower_id = followers_test5)
-followers_test6B <- data.frame(r_user = rep(top_10$screen_name[6], length(followers_test6)), follower_id = followers_test6)
-followers_test7B <- data.frame(r_user = rep(top_10$screen_name[7], length(followers_test7)), follower_id = followers_test7)
-followers_test8B <- data.frame(r_user = rep(top_10$screen_name[8], length(followers_test8)), follower_id = followers_test8)
-followers_test9B <- data.frame(r_user = rep(top_10$screen_name[9], length(followers_test9)), follower_id = followers_test9)
-followers_test10B <- data.frame(r_user = rep(top_10$screen_name[10], length(followers_test10)), follower_id = followers_test10)
+followers_test1B <- data.frame(r_user = rep(top_10$screen_name[1], length(followers_test1)), friend_id = followers_test1)
+followers_test2B <- data.frame(r_user = rep(top_10$screen_name[2], length(followers_test2)), friend_id = followers_test2)
+followers_test3B <- data.frame(r_user = rep(top_10$screen_name[3], length(followers_test3)), friend_id = followers_test3)
+followers_test4B <- data.frame(r_user = rep(top_10$screen_name[4], length(followers_test4)), friend_id = followers_test4)
+followers_test5B <- data.frame(r_user = rep(top_10$screen_name[5], length(followers_test5)), friend_id = followers_test5)
+followers_test6B <- data.frame(r_user = rep(top_10$screen_name[6], length(followers_test6)), friend_id = followers_test6)
+followers_test7B <- data.frame(r_user = rep(top_10$screen_name[7], length(followers_test7)), friend_id = followers_test7)
+followers_test8B <- data.frame(r_user = rep(top_10$screen_name[8], length(followers_test8)), friend_id = followers_test8)
+followers_test9B <- data.frame(r_user = rep(top_10$screen_name[9], length(followers_test9)), friend_id = followers_test9)
+followers_test10B <- data.frame(r_user = rep(top_10$screen_name[10], length(followers_test10)), friend_id = followers_test10)
 
 final_followers <- data.frame(rbind(followers_test1B, followers_test2B, followers_test3B, followers_test4B, followers_test5B,
                                     followers_test6B, followers_test7B, followers_test8B, followers_test9B, followers_test10B))
