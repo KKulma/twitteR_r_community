@@ -35,11 +35,6 @@ oauth_endpoints("twitter")
 #
 #    Replace key and secret below
 
-api_key <- "lzEGJ4qfUrQUTotNtIvRA1zBd"
-api_secret <- "BzI0QbkVwsJXGzW7OpnXrIKelMM2zYekdk7IsjuxUNKoQ8oual"
-access_token <- "567537377-hMRh7424BRezcuu03bgsVAqYlqsHbsI8QtRVkGQF"
-access_token_secret <- "na3LB2iWhZuxPGDtaukkRFoatYiJPJIk0PRTdgaxiBBAB"
-
 myapp <- oauth_app("twitter",
                    key = api_key,
                    secret = api_secret
