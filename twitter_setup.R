@@ -4,6 +4,8 @@
 #RESTART R session!
 #install.packages("dplyr")
 install.packages("DT")
+install.packages("brocks")
+devtools::install_github("brendan-R/brocks")
 
 rm(list = ls())
 
@@ -32,6 +34,12 @@ oauth_endpoints("twitter")
 #    Make sure to set callback url to "http://127.0.0.1:1410/"
 #
 #    Replace key and secret below
+
+api_key <- "lzEGJ4qfUrQUTotNtIvRA1zBd"
+api_secret <- "BzI0QbkVwsJXGzW7OpnXrIKelMM2zYekdk7IsjuxUNKoQ8oual"
+access_token <- "567537377-hMRh7424BRezcuu03bgsVAqYlqsHbsI8QtRVkGQF"
+access_token_secret <- "na3LB2iWhZuxPGDtaukkRFoatYiJPJIk0PRTdgaxiBBAB"
+
 myapp <- oauth_app("twitter",
                    key = api_key,
                    secret = api_secret
@@ -46,14 +54,10 @@ req <- GET("https://api.twitter.com/1.1/statuses/home_timeline.json",
 stop_for_status(req)
 content(req)
 
+setwd("/Users/katarzynakulma/projects/twitter_rstats_community")
+source("config.R")
 
 
-api_key <- "9aMsBdeRf16FR0F14JHX8ySfE"
-api_secret <- "IED6n8nnBnxfa5rZoKn6ZCXdy2w2ARNDfY8a3Ry0GXhAwOJByd"
-access_token <- "567537377-hMRh7424BRezcuu03bgsVAqYlqsHbsI8QtRVkGQF"
-access_token_secret <- "na3LB2iWhZuxPGDtaukkRFoatYiJPJIk0PRTdgaxiBBAB"
-
-?setup_twitter_oauth
 setup_twitter_oauth(api_key,api_secret)
 
 
@@ -341,6 +345,15 @@ friends_test23 %>% summarize(dist = n_distinct(twitter_top_user))
 friends_test33 %>% summarize(dist = n_distinct(twitter_top_user))
 
 
+####  checking TheSmartJokes ####
+
+load("/Users/katarzynakulma/projects/kkulma.github.io/blog_prep/twitter_image.RData")
+
+
+r_users_info %>% filter(screen_name ==  "TheSmartJokes") %>% select(screen_name, dplyr::contains("count")) 
+str(SJ_friends)
+
+
 friends_test24 <- friends_test23 %>% 
   filter(twitter_top_user != "TheSmartJokes") %>% 
   rbind(SJ_friends) 
@@ -385,6 +398,8 @@ setwd("/Users/katarzynakulma/projects/kkulma.github.io/blog_prep")
 save.image(file = "twitter_image.RData")
 
 #### plot friendships ####
+??graph_from_data_frame
+
 
 final_test
 f1 <- graph_from_data_frame(final_test3, directed = TRUE, vertices = NULL)
